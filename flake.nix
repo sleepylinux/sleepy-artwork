@@ -22,6 +22,8 @@
             installPhase = ''
               install -Dm644 branding/logo.svg "$out/share/sleepy-artwork/branding/logo.svg"
               install -Dm644 branding/manifest.json "$out/share/sleepy-artwork/branding/manifest.json"
+              install -d "$out/share/sleepy-artwork/icons"
+              install -m644 icons/*.svg "$out/share/sleepy-artwork/icons/"
             '';
 
             meta.license = pkgs.lib.licenses.gpl3Only;

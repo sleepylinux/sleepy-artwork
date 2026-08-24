@@ -31,5 +31,29 @@
 
           default = sleepy-artwork;
         });
+
+      checks = forAllSystems (system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        {
+          artwork-contracts = pkgs.runCommand "sleepy-artwork-contracts" {
+            nativeBuildInputs = [
+              pkgs.bash
+              pkgs.coreutils
+              pkgs.gawk
+              pkgs.gnused
+              pkgs.jq
+              pkgs.libxml2
+              pkgs.ripgrep
+            ];
+          } ''
+            cd ${./.}
+            bash tests/manifest.sh
+            bash tests/manifest-security-test.sh
+            bash tests/license.sh
+            touch "$out"
+          '';
+        });
     };
 }

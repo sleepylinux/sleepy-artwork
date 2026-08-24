@@ -85,7 +85,7 @@ while IFS= read -r asset; do
 
   case "$asset_path" in
     *.svg)
-      if ! xmllint --noout "$asset_path"; then
+      if ! xmllint --nonet --noout "$asset_path"; then
         printf 'FAIL: %s is not well-formed SVG XML: %s\n' "$logical_name" "$relative_path" >&2
         exit 1
       fi
@@ -105,6 +105,27 @@ for icon_name in "${control_center_icons[@]}"; do
 
   if LC_ALL=C rg -n '[^\x00-\x7F]' "$icon_path" >/dev/null; then
     printf 'FAIL: icons.%s must contain ASCII markup only, with no Unicode text\n' "$icon_name" >&2
+    exit 1
+  fi
+
+  if xmllint --xpath \
+    'boolean(//@*[starts-with(translate(local-name(), "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "on")])' \
+    "$icon_path" 2>/dev/null | rg -qx 'true'; then
+    printf 'FAIL: icons.%s contains a forbidden event-handler attribute\n' "$icon_name" >&2
+    exit 1
+  fi
+
+  if xmllint --xpath \
+    'boolean(//*[not(local-name()="svg" or local-name()="path" or local-name()="circle" or local-name()="rect" or local-name()="line" or local-name()="polyline" or local-name()="polygon" or local-name()="ellipse")])' \
+    "$icon_path" 2>/dev/null | rg -qx 'true'; then
+    printf 'FAIL: icons.%s contains an unsupported SVG element\n' "$icon_name" >&2
+    exit 1
+  fi
+
+  if xmllint --xpath \
+    'boolean(//@*[not(local-name()="viewBox" or local-name()="fill" or local-name()="stroke" or local-name()="stroke-width" or local-name()="stroke-linecap" or local-name()="stroke-linejoin" or local-name()="d" or local-name()="cx" or local-name()="cy" or local-name()="r" or local-name()="x" or local-name()="y" or local-name()="width" or local-name()="height" or local-name()="rx" or local-name()="ry" or local-name()="x1" or local-name()="y1" or local-name()="x2" or local-name()="y2" or local-name()="points")])' \
+    "$icon_path" 2>/dev/null | rg -qx 'true'; then
+    printf 'FAIL: icons.%s contains an unsupported SVG attribute\n' "$icon_name" >&2
     exit 1
   fi
 

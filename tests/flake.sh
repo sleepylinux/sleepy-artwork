@@ -9,6 +9,17 @@ if ! rg -q '^      checks = forAllSystems \(system:' "$flake"; then
   exit 1
 fi
 
+mapfile -t check_names < <(
+  sed -n '/^      checks = forAllSystems (system:/,/^        });$/p' "$flake" |
+    sed -nE 's/^          ([A-Za-z0-9_-]+) = pkgs\.runCommand .*/\1/p'
+)
+
+if (( ${#check_names[@]} != 1 )) || [[ "${check_names[0]:-}" != assets ]]; then
+  printf 'FAIL: per-system flake checks must expose exactly assets, found: %s\n' \
+    "${check_names[*]:-(none)}" >&2
+  exit 1
+fi
+
 if ! rg -q 'bash tests/manifest\.sh' "$flake" || \
   ! rg -q 'bash tests/manifest-security-test\.sh' "$flake"; then
   printf 'FAIL: a flake check must execute both manifest contracts\n' >&2

@@ -37,7 +37,7 @@
           pkgs = import nixpkgs { inherit system; };
         in
         {
-          artwork-contracts = pkgs.runCommand "sleepy-artwork-contracts" {
+          assets = pkgs.runCommand "sleepy-artwork-contracts" {
             nativeBuildInputs = [
               pkgs.bash
               pkgs.coreutils

@@ -11,7 +11,10 @@ fi
 
 mapfile -t check_names < <(
   sed -n '/^      checks = forAllSystems (system:/,/^        });$/p' "$flake" |
-    sed -nE 's/^          ([A-Za-z0-9_-]+) = pkgs\.runCommand .*/\1/p'
+    sed -n '/^        {$/,/^        });$/p' |
+    sed -nE \
+      -e 's/^          ([A-Za-z_][A-Za-z0-9_-]*)[[:space:]]*=.*/\1/p' \
+      -e 's/^          "([^"]+)"[[:space:]]*=.*/\1/p'
 )
 
 if (( ${#check_names[@]} != 1 )) || [[ "${check_names[0]:-}" != assets ]]; then

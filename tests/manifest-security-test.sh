@@ -6,6 +6,7 @@ fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/sleepy-artwork-security.XXXXXX")"
 trap 'rm -rf -- "$fixture_root"' EXIT
 
 cp -R "$repository_root/branding" "$repository_root/icons" "$repository_root/tests" "$fixture_root/"
+chmod -R u+w -- "$fixture_root"
 
 icon="$fixture_root/icons/control-center.svg"
 mutated_icon="$fixture_root/icons/control-center.mutated.svg"

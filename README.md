@@ -1,5 +1,9 @@
 # sleepy-artwork
 
+## License
+
+Licensed under GPL-3.0-only. See [LICENSE](LICENSE).
+
 Versioned artwork assets for Sleepy.
 
 `branding/manifest.json` maps logical asset names to package-relative files.

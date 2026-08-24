@@ -23,6 +23,8 @@
               install -Dm644 branding/logo.svg "$out/share/sleepy-artwork/branding/logo.svg"
               install -Dm644 branding/manifest.json "$out/share/sleepy-artwork/branding/manifest.json"
             '';
+
+            meta.license = pkgs.lib.licenses.gpl3Only;
           };
 
           default = sleepy-artwork;

@@ -21,6 +21,72 @@ if ! jq -e '.assets["branding.primaryMark"] | type == "string" and length > 0' "
   exit 1
 fi
 
+control_center_icons=(
+  control-center
+  network
+  bluetooth
+  volume
+  microphone
+  brightness
+  night-light
+  focus
+  battery
+  power-profile
+  media-play
+  media-pause
+  media-next
+  media-previous
+  lock
+  logout
+  power
+  preset
+  keybinding
+  notification
+  notification-critical
+  dnd
+  dismiss
+  archive
+  launcher
+  overview
+  window-close
+  workspace
+  calendar
+  weather
+  cpu
+  memory
+  disk
+  audio-output
+  media
+  theme
+  palette
+  wallpaper
+  effects-full
+  effects-reduced
+  effects-none
+  search
+  refresh
+  location
+  error
+  offline
+  unread
+)
+
+missing_icons=()
+for icon_name in "${control_center_icons[@]}"; do
+  logical_name="icons.$icon_name"
+  expected_path="icons/$icon_name.svg"
+  if ! jq -e --arg name "$logical_name" --arg path "$expected_path" \
+    '.assets[$name] == $path' "$manifest" >/dev/null; then
+    missing_icons+=("$logical_name -> $expected_path")
+  fi
+done
+
+if (( ${#missing_icons[@]} > 0 )); then
+  printf 'FAIL: missing Control Center icon entries:\n' >&2
+  printf '  %s\n' "${missing_icons[@]}" >&2
+  exit 1
+fi
+
 while IFS= read -r asset; do
   logical_name="${asset%%$'\t'*}"
   relative_path="${asset#*$'\t'}"
@@ -47,7 +113,7 @@ while IFS= read -r asset; do
 
   case "$asset_path" in
     *.svg)
-      if ! xmllint --noout "$asset_path"; then
+      if ! xmllint --nonet --noout "$asset_path"; then
         printf 'FAIL: %s is not well-formed SVG XML: %s\n' "$logical_name" "$relative_path" >&2
         exit 1
       fi
@@ -55,4 +121,54 @@ while IFS= read -r asset; do
   esac
 done < <(jq -r '.assets | to_entries[] | "\(.key)\t\(.value)"' "$manifest")
 
-printf 'PASS: manifest assets resolve within the package and SVG assets parse as XML\n'
+for icon_name in "${control_center_icons[@]}"; do
+  icon_path="$package_root/icons/$icon_name.svg"
+
+  if ! xmllint --xpath \
+    'boolean(/*[local-name()="svg" and @viewBox="0 0 24 24" and @fill="none" and @stroke="currentColor" and @stroke-width="2" and @stroke-linecap="round" and @stroke-linejoin="round"])' \
+    "$icon_path" 2>/dev/null | rg -qx 'true'; then
+    printf 'FAIL: icons.%s must use the shared 24x24 currentColor rounded two-pixel stroke style\n' "$icon_name" >&2
+    exit 1
+  fi
+
+  if LC_ALL=C rg -n '[^\x00-\x7F]' "$icon_path" >/dev/null; then
+    printf 'FAIL: icons.%s must contain ASCII markup only, with no Unicode text\n' "$icon_name" >&2
+    exit 1
+  fi
+
+  if xmllint --xpath \
+    'boolean(//@*[starts-with(translate(local-name(), "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "on")])' \
+    "$icon_path" 2>/dev/null | rg -qx 'true'; then
+    printf 'FAIL: icons.%s contains a forbidden event-handler attribute\n' "$icon_name" >&2
+    exit 1
+  fi
+
+  if xmllint --xpath \
+    'boolean(//*[not(local-name()="svg" or local-name()="path" or local-name()="circle" or local-name()="rect" or local-name()="line" or local-name()="polyline" or local-name()="polygon" or local-name()="ellipse")])' \
+    "$icon_path" 2>/dev/null | rg -qx 'true'; then
+    printf 'FAIL: icons.%s contains an unsupported SVG element\n' "$icon_name" >&2
+    exit 1
+  fi
+
+  if xmllint --xpath \
+    'boolean(//@*[not(local-name()="viewBox" or local-name()="fill" or local-name()="stroke" or local-name()="stroke-width" or local-name()="stroke-linecap" or local-name()="stroke-linejoin" or local-name()="d" or local-name()="cx" or local-name()="cy" or local-name()="r" or local-name()="x" or local-name()="y" or local-name()="width" or local-name()="height" or local-name()="rx" or local-name()="ry" or local-name()="x1" or local-name()="y1" or local-name()="x2" or local-name()="y2" or local-name()="points")])' \
+    "$icon_path" 2>/dev/null | rg -qx 'true'; then
+    printf 'FAIL: icons.%s contains an unsupported SVG attribute\n' "$icon_name" >&2
+    exit 1
+  fi
+
+  if xmllint --xpath \
+    'boolean(//*[local-name()="script" or local-name()="text" or local-name()="image" or local-name()="foreignObject" or local-name()="use" or local-name()="style"])' \
+    "$icon_path" 2>/dev/null | rg -qx 'true'; then
+    printf 'FAIL: icons.%s contains forbidden executable, text, embedded, referenced, or style content\n' "$icon_name" >&2
+    exit 1
+  fi
+
+  if sed 's#http://www.w3.org/2000/svg##g' "$icon_path" | \
+    rg -n -i '(https?://|data:|javascript:|url\s*\(|href\s*=|<!DOCTYPE|<!ENTITY)' >/dev/null; then
+    printf 'FAIL: icons.%s contains an external, embedded, or entity reference\n' "$icon_name" >&2
+    exit 1
+  fi
+done
+
+printf 'PASS: manifest assets resolve and Control Center SVGs are safe and coherent\n'

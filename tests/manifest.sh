@@ -41,6 +41,34 @@ control_center_icons=(
   power
   preset
   keybinding
+  notification
+  notification-critical
+  dnd
+  dismiss
+  archive
+  launcher
+  overview
+  window-close
+  workspace
+  calendar
+  weather
+  cpu
+  memory
+  disk
+  audio-output
+  media
+  theme
+  palette
+  wallpaper
+  effects-full
+  effects-reduced
+  effects-none
+  search
+  refresh
+  location
+  error
+  offline
+  unread
 )
 
 missing_icons=()

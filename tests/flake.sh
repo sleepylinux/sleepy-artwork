@@ -4,6 +4,11 @@ set -euo pipefail
 repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 flake="$repository_root/flake.nix"
 
+if ! rg -q 'systems = \[ "x86_64-linux" "aarch64-linux" \];' "$flake"; then
+  printf 'FAIL: M3 artwork checks must target exactly x86_64-linux and aarch64-linux\n' >&2
+  exit 1
+fi
+
 contains_top_level_inherit() {
   awk '
     BEGIN {

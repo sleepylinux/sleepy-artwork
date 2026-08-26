@@ -45,6 +45,7 @@
               pkgs.gnused
               pkgs.jq
               pkgs.libxml2
+              pkgs.librsvg
               pkgs.ripgrep
             ];
           } ''
@@ -52,6 +53,7 @@
             bash tests/manifest.sh
             bash tests/manifest-security-test.sh
             bash tests/license.sh
+            bash tests/raster-golden.sh
             touch "$out"
           '';
         });

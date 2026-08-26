@@ -5,7 +5,7 @@
 
   outputs = { self, nixpkgs }:
     let
-      systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+      systems = [ "x86_64-linux" "aarch64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
     in
     {
@@ -22,12 +22,38 @@
             installPhase = ''
               install -Dm644 branding/logo.svg "$out/share/sleepy-artwork/branding/logo.svg"
               install -Dm644 branding/manifest.json "$out/share/sleepy-artwork/branding/manifest.json"
+              install -d "$out/share/sleepy-artwork/icons"
+              install -m644 icons/*.svg "$out/share/sleepy-artwork/icons/"
             '';
 
             meta.license = pkgs.lib.licenses.gpl3Only;
           };
 
           default = sleepy-artwork;
+        });
+
+      checks = forAllSystems (system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        {
+          assets = pkgs.runCommand "sleepy-artwork-contracts" {
+            nativeBuildInputs = [
+              pkgs.bash
+              pkgs.coreutils
+              pkgs.gawk
+              pkgs.gnused
+              pkgs.jq
+              pkgs.libxml2
+              pkgs.ripgrep
+            ];
+          } ''
+            cd ${./.}
+            bash tests/manifest.sh
+            bash tests/manifest-security-test.sh
+            bash tests/license.sh
+            touch "$out"
+          '';
         });
     };
 }
